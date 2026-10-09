@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Colaboradores · Controle de EPI</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="lateral">
+    <a class="marca" href="/" aria-label="Controle de EPI, página inicial"><span class="icone-marca" aria-hidden="true">E</span><span>Controle de EPI<small>Organização e segurança</small></span></a>
+    <p class="menu-legenda">CADASTROS</p>
+    <nav aria-label="Menu principal"><a href="/" class="menu-ativo" aria-current="page"><span aria-hidden="true">◉</span> Colaboradores</a></nav>
+    <div class="aluno"><strong>José Augusto</strong><span>Desenvolvimento de Sistemas</span></div>
+  </aside>
+  <div class="conteudo">
+    <header class="cabecalho"><span>Controle de EPI <span aria-hidden="true">/</span> <strong>Colaboradores</strong></span><span class="selo">Cadastro da equipe</span></header>
+    <main>
+      <div class="titulo"><div><h1>Colaboradores</h1><p>Organize os dados de quem faz parte da equipe.</p></div><button id="novo" type="button"><span aria-hidden="true">+</span> Novo colaborador</button></div>
+      <p id="mensagem" role="status" aria-live="polite" hidden></p>
+      <section id="listagem" class="painel" aria-labelledby="titulo-lista">
+        <div class="topo-painel"><div><h2 id="titulo-lista">Lista de colaboradores</h2><p class="ajuda">Pesquise um nome para encontrar o cadastro.</p></div><span id="total" class="contador">Carregando…</span></div>
+        <form id="pesquisa" class="busca"><div><label for="busca">Nome do colaborador</label><input id="busca" name="nome" type="search" placeholder="Ex.: Ana Silva" maxlength="100"></div><button type="submit">Pesquisar</button><button id="limpar" type="button" class="secundario">Limpar</button></form>
+        <div class="tabela"><table><thead><tr><th scope="col">Nome</th><th scope="col">Matrícula</th><th scope="col">Setor</th><th scope="col">Ações</th></tr></thead><tbody id="colaboradores"></tbody></table></div>
+        <p id="vazio" class="vazio">Carregando colaboradores…</p>
+      </section>
+      <section id="cadastro" class="painel formulario-painel" aria-labelledby="titulo-formulario" hidden>
+        <div class="topo-painel"><div><h2 id="titulo-formulario">Cadastrar colaborador</h2><p class="ajuda">Todos os campos são obrigatórios.</p></div><span class="contador">Dados do colaborador</span></div>
+        <form id="formulario">
+          <label for="nome">Nome completo</label><input id="nome" name="nome" required maxlength="100" autocomplete="name" placeholder="Ex.: Ana Silva">
+          <div class="campos"><div><label for="matricula">Matrícula</label><input id="matricula" name="matricula" required maxlength="30" placeholder="Ex.: 001"><small>Use a matrícula cadastrada na empresa.</small></div><div><label for="setor">Setor</label><input id="setor" name="setor" required maxlength="80" placeholder="Ex.: Produção"></div></div>
+          <div class="acoes-form"><button id="salvar" type="submit">Salvar cadastro</button><button id="voltar" type="button" class="secundario">Voltar à lista</button></div>
+        </form>
+      </section>
+    </main>
+    <footer>José Augusto da Silva Bertolino Falcão · Desenvolvimento de Sistemas</footer>
+  </div>
+  <dialog id="confirmacao" aria-labelledby="titulo-exclusao" aria-describedby="texto-exclusao"><span class="aviso-icone" aria-hidden="true">!</span><h2 id="titulo-exclusao">Excluir colaborador?</h2><p id="texto-exclusao"></p><p class="ajuda">Confirme para remover o cadastro da lista.</p><div class="acoes-form"><button id="cancelar-exclusao" class="secundario" type="button" autofocus>Cancelar</button><button id="excluir" class="perigo" type="button">Excluir colaborador</button></div></dialog>
+</body>
+</html>
