@@ -1,0 +1,14 @@
+{
+  "name": "controle-epi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Atividade de Desenvolvimento de Sistemas — cadastro de colaboradores",
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": { "express": "5.2.1" }
+}
