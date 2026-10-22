@@ -1,64 +1,112 @@
-# Controle de EPI — Colaboradores
+# Controle de EPI — Sistema de Gerenciamento e Empréstimos
 
-**Aluno:** José Augusto da Silva Bertolino Falcão  
-**Disciplina:** Desenvolvimento de Sistemas
+Sistema corporativo para controle de Equipamentos de Proteção Individual (EPI), gestão da equipe de colaboradores, controle de retiradas, devoluções e vistorias de segurança do trabalho para empresas de construção civil.
 
-Aplicação da etapa 2 da atividade: cadastrar, listar, pesquisar, editar e excluir colaboradores, salvando os dados em banco SQLite.
+---
 
-## Executar
+## Informações do Projeto
 
-Instale o **Node.js 24 ou superior**. Na pasta `controle-epi`, execute:
+- **Equipe de Desenvolvimento:**
+  - José Augusto da Silva Bertolino Falcão
+  - Taiane Silva de Oliveira
+- **Curso:** Técnico em Desenvolvimento de Sistemas
+- **Disciplina:** Desenvolvimento de Sistemas
+- **Atividade Avaliativa:** Sistema de Gerenciamento de EPIs
+
+---
+
+## Acesso e Autenticação (Real)
+
+O sistema conta com autenticação real baseada em **Nome de Usuário** e **Senha** (sem exigência de e-mail), com controle de sessão seguro (`HttpOnly` cookie) e hash criptográfico SHA-256 com salt.
+
+O administrador geral padrão é gerado automaticamente na inicialização:
+
+| Campo | Credencial |
+| :--- | :--- |
+| **Usuário** | `admin` |
+| **Senha** | `admin123` |
+| **Perfil** | Administrador Geral |
+
+Novos usuários com perfil de **Administrador** ou **Operador** podem ser criados, editados e gerenciados no módulo de **Gestão de Usuários**.
+
+---
+
+## Módulos e Funcionalidades
+
+### 1. Gestão de Usuários (Administração)
+- Cadastro de novos operadores e administradores com login único (`@usuario`), nome e senha protegida.
+- Edição de cadastros existentes com opção de redefinição de senha e ativação/desativação.
+- Proteção da conta raiz: o administrador principal (`admin`) é protegido contra exclusão ou desativação acidental.
+- Proteção de integridade: usuários vinculados a histórico de empréstimos não podem ser excluídos.
+
+### 2. Cadastro de Colaboradores
+- Cadastro com validação de campos obrigatórios: Nome completo, Matrícula única e Setor.
+- Busca em tempo real por nome com normalização de acentuação em pt-BR.
+- Edição e exclusão com diálogo modal de confirmação.
+
+### 3. Catálogo de Equipamentos (EPIs)
+- Controle de estoque físico e disponibilidade de itens.
+- Cadastro de itens com Nome, Quantidade disponível e Certificado de Aprovação (C.A.).
+- Proteção de exclusão: bloqueia remoção de EPIs com histórico de empréstimo.
+
+### 4. Controle de Empréstimos e Vistorias
+- **Painel de Indicadores (KPIs):**
+  - **Itens Disponíveis:** Total em estoque para novas entregas.
+  - **Empréstimos Ativos:** Equipamentos atualmente em uso.
+  - **Prazos Vencidos:** Alerta de devoluções com data limite expirada.
+  - **Total de Colaboradores:** Efetivo cadastrado.
+- **Emissão de Empréstimo:** Associação entre Colaborador e EPI, registro de condições na entrega, data de empréstimo e previsão de devolução (validada obrigatoriamente para ser posterior à entrega).
+- **Atualização de Status e Vistoria:**
+  - Status gerenciados: `Emprestado`, `Fornecido`, `Devolvido`, `Danificado`, `Perdido`.
+  - Dados de entrega originais bloqueados contra edição para preservar o histórico.
+  - Exibição dinâmica de campos de **Data da Devolução** e **Observações / Avarias** para encerramento de empréstimo.
+
+### 5. Relatórios com Filtro Combinatório (AND)
+- Filtro simultâneo por Colaborador + Equipamento + Status.
+- Tabela com atalhos de inspeção e atualização de registros.
+
+---
+
+## Como Executar
+
+Requer **Node.js 24 ou superior** (utiliza o módulo nativo `node:sqlite`).
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abra **http://localhost:3000**. Para encerrar, pressione **Ctrl+C**.
+Abra **http://localhost:3000** no navegador e efetue o login com `admin` / `admin123`.
 
-`npm run dev` reinicia o servidor quando o código muda. Para executar sem esse recurso, use `npm start`.
+Para executar em modo produção:
+```bash
+npm start
+```
 
-## Exemplo de uso
+---
 
-1. Clique em **Novo colaborador**.
-2. Informe nome `Ana Silva`, matrícula `001` e setor `Produção`.
-3. Salve. O sistema exibe uma mensagem e permanece na tela de cadastro.
-4. Volte à lista e pesquise por `Ana`.
-5. Clique em **Editar**, altere os dados e salve.
-6. Na lista, clique em **Excluir** e confirme ou cancele no aviso.
+## Testes Automatizados
 
-Todos os campos são obrigatórios. A matrícula não pode se repetir. Em caso de falha, os dados digitados são mantidos.
-
-## Dados e arquivos
-
-O banco é criado automaticamente em `dados/controle_epi.db`. Os registros permanecem salvos após fechar ou reiniciar o sistema. Não apague esse arquivo para manter os dados.
-
-- `server.js`: inicia o servidor.
-- `app.js`: rotas do Express e operações no banco.
-- `schema.sql`: tabelas do banco.
-- `public/`: interface em HTML, CSS e JavaScript.
-- `tests/`: testes das operações.
-- `Dockerfile`: execução opcional com Docker.
-
-A documentação de planejamento fica na pasta separada `documentacao`, ao lado do projeto. O banco possui as quatro tabelas do DER, mas nesta etapa somente as telas de colaboradores estão implementadas. Login, EPIs, usuários e empréstimos fazem parte do planejamento. Use a aplicação localmente para a atividade escolar.
-
-## Testes
+Suíte completa de 14 testes cobrindo todo o ciclo da aplicação utilizando `node:test`:
 
 ```bash
 npm test
 ```
 
-Os testes usam um banco temporário e não alteram os cadastros reais.
+Testes inclusos:
+- CRUD de colaboradores e integridade de matrículas
+- Catálogo e estoque de EPIs
+- Regras de datas, status e imutabilidade de empréstimos
+- Autenticação com usuário e senha, sessões e logout
+- Gestão de usuários e proteção de contas administrativas
+- Métricas em tempo real e relatórios combinatórios (AND)
+- Segurança contra CSRF, limites de payload e persistência
 
-Verificação realizada: oito testes passaram, a sintaxe JavaScript foi conferida e `npm run dev` iniciou e serviu a tela corretamente. A aparência não foi conferida em navegador nesta execução. O Dockerfile foi preparado, mas a execução com Docker não foi testada.
+---
 
-## Docker (opcional)
-
-Com Docker instalado e em execução:
+## Execução com Docker (opcional)
 
 ```bash
 docker build -t controle-epi .
 docker run --rm --name controle-epi -p 127.0.0.1:3000:3000 -v controle-epi-dados:/app/dados controle-epi
 ```
-
-Abra **http://localhost:3000**. O volume mantém o banco após encerrar o contêiner. O banco do Docker é separado daquele usado por `npm run dev`.
