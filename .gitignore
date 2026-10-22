@@ -4,3 +4,4 @@ dados/
 *.db
 *.db-shm
 *.db-wal
+*:Zone.Identifier
