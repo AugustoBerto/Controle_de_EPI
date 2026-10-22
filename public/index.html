@@ -3,39 +3,582 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Colaboradores · Controle de EPI</title>
+  <title>SST · Controle e Gestão de EPIs</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <aside class="lateral">
-    <a class="marca" href="/" aria-label="Controle de EPI, página inicial"><span class="icone-marca" aria-hidden="true">E</span><span>Controle de EPI<small>Organização e segurança</small></span></a>
-    <p class="menu-legenda">CADASTROS</p>
-    <nav aria-label="Menu principal"><a href="/" class="menu-ativo" aria-current="page"><span aria-hidden="true">◉</span> Colaboradores</a></nav>
-    <div class="aluno"><strong>José Augusto</strong><span>Desenvolvimento de Sistemas</span></div>
+  <!-- ========================================================
+       BARRA LATERAL CORPORATIVA
+       ======================================================== -->
+  <aside class="sidebar">
+    <a class="marca" href="#" id="menu-home" title="Ir para o início">
+      <div class="marca-icone">🛡</div>
+      <div class="marca-info">
+        <strong>SST Gestão</strong>
+        <small>Controle de EPIs</small>
+      </div>
+    </a>
+
+    <div class="nav-secao">
+      <div class="nav-rotulo">Cadastros</div>
+      <a class="nav-item ativo" id="nav-colaboradores" href="#colaboradores">
+        <svg class="nav-icone" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Colaboradores</span>
+      </a>
+      <a class="nav-item" id="nav-epis" href="#epis">
+        <svg class="nav-icone" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Equipamentos (EPIs)</span>
+      </a>
+    </div>
+
+    <div class="nav-secao">
+      <div class="nav-rotulo">Operação</div>
+      <a class="nav-item" id="nav-emprestimos" href="#emprestimos">
+        <svg class="nav-icone" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>
+        <span>Controle de Empréstimos</span>
+      </a>
+    </div>
+
+    <div class="nav-secao">
+      <div class="nav-rotulo">Análise</div>
+      <a class="nav-item" id="nav-relatorios" href="#relatorios">
+        <svg class="nav-icone" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Relatórios</span>
+      </a>
+    </div>
+
+    <div class="nav-secao">
+      <div class="nav-rotulo">Administração</div>
+      <a class="nav-item" id="nav-usuarios" href="#usuarios">
+        <svg class="nav-icone" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        <span>Gestão de Usuários</span>
+      </a>
+    </div>
+
+    <div class="sidebar-rodape">
+      <button id="btn-logout" class="btn-sair" type="button">
+        <svg class="nav-icone" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Sair do Sistema</span>
+      </button>
+    </div>
   </aside>
-  <div class="conteudo">
-    <header class="cabecalho"><span>Controle de EPI <span aria-hidden="true">/</span> <strong>Colaboradores</strong></span><span class="selo">Cadastro da equipe</span></header>
+
+  <!-- ========================================================
+       ÁREA PRINCIPAL
+       ======================================================== -->
+  <div class="painel-principal">
+    <header class="topo-barra">
+      <div class="topo-caminho">
+        <span>SST</span>
+        <span>/</span>
+        <strong id="trilha-secao">Colaboradores</strong>
+      </div>
+      <div class="topo-usuario-card">
+        <div id="usuario-avatar" class="avatar-badge">AG</div>
+        <div class="usuario-detalhes">
+          <span id="topo-usuario-nome" class="usuario-nome">Administrador Geral</span>
+          <span id="topo-usuario-perfil" class="usuario-perfil-tag">Administrador</span>
+        </div>
+      </div>
+    </header>
+
     <main>
-      <div class="titulo"><div><h1>Colaboradores</h1><p>Organize os dados de quem faz parte da equipe.</p></div><button id="novo" type="button"><span aria-hidden="true">+</span> Novo colaborador</button></div>
-      <p id="mensagem" role="status" aria-live="polite" hidden></p>
-      <section id="listagem" class="painel" aria-labelledby="titulo-lista">
-        <div class="topo-painel"><div><h2 id="titulo-lista">Lista de colaboradores</h2><p class="ajuda">Pesquise um nome para encontrar o cadastro.</p></div><span id="total" class="contador">Carregando…</span></div>
-        <form id="pesquisa" class="busca"><div><label for="busca">Nome do colaborador</label><input id="busca" name="nome" type="search" placeholder="Ex.: Ana Silva" maxlength="100"></div><button type="submit">Pesquisar</button><button id="limpar" type="button" class="secundario">Limpar</button></form>
-        <div class="tabela"><table><thead><tr><th scope="col">Nome</th><th scope="col">Matrícula</th><th scope="col">Setor</th><th scope="col">Ações</th></tr></thead><tbody id="colaboradores"></tbody></table></div>
-        <p id="vazio" class="vazio">Carregando colaboradores…</p>
-      </section>
-      <section id="cadastro" class="painel formulario-painel" aria-labelledby="titulo-formulario" hidden>
-        <div class="topo-painel"><div><h2 id="titulo-formulario">Cadastrar colaborador</h2><p class="ajuda">Todos os campos são obrigatórios.</p></div><span class="contador">Dados do colaborador</span></div>
-        <form id="formulario">
-          <label for="nome">Nome completo</label><input id="nome" name="nome" required maxlength="100" autocomplete="name" placeholder="Ex.: Ana Silva">
-          <div class="campos"><div><label for="matricula">Matrícula</label><input id="matricula" name="matricula" required maxlength="30" placeholder="Ex.: 001"><small>Use a matrícula cadastrada na empresa.</small></div><div><label for="setor">Setor</label><input id="setor" name="setor" required maxlength="80" placeholder="Ex.: Produção"></div></div>
-          <div class="acoes-form"><button id="salvar" type="submit">Salvar cadastro</button><button id="voltar" type="button" class="secundario">Voltar à lista</button></div>
-        </form>
-      </section>
+      <!-- Alerta de feedback visual -->
+      <div id="alerta-feedback" class="alerta alerta-sucesso" hidden>
+        <span id="alerta-texto">Operação realizada com sucesso!</span>
+        <button id="alerta-fechar" class="alerta-fechar" type="button" aria-label="Fechar alerta">×</button>
+      </div>
+
+      <!-- ========================================================
+           1. COLABORADORES
+           ======================================================== -->
+      <div id="view-colaboradores">
+        <div id="colaboradores-lista" class="painel">
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h1>Colaboradores</h1>
+              <p class="painel-subtitulo">Gerenciamento da equipe operacional e dados de identificação.</p>
+            </div>
+            <button id="btn-criar-colaborador" class="btn btn-primario" type="button">
+              <span>+</span> Novo Colaborador
+            </button>
+          </div>
+
+          <div class="barra-filtros">
+            <div class="input-busca-box">
+              <svg class="icone-busca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="busca-colaborador" class="input-busca" type="search" placeholder="Pesquisar colaborador por nome...">
+            </div>
+          </div>
+
+          <div class="tabela-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Nome Completo</th>
+                  <th scope="col">Matrícula</th>
+                  <th scope="col">Setor / Função</th>
+                  <th scope="col" style="width: 160px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-colaboradores-corpo"></tbody>
+            </table>
+            <div id="vazio-colaboradores" class="estado-vazio" hidden>
+              Nenhum colaborador encontrado correspondente à pesquisa.
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulário Colaborador -->
+        <div id="colaboradores-form-card" class="painel form-card" hidden>
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h2 id="titulo-form-colaborador">Cadastrar Colaborador</h2>
+              <p class="painel-subtitulo">Preencha os dados do colaborador para emissão e controle de EPIs.</p>
+            </div>
+          </div>
+          <form id="form-colaborador">
+            <div class="form-grupo">
+              <label for="colab-nome">Nome Completo <span class="obrigatorio">*</span></label>
+              <input id="colab-nome" name="nome" required maxlength="100" placeholder="Ex.: Ana Silva">
+            </div>
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="colab-matricula">Matrícula <span class="obrigatorio">*</span></label>
+                <input id="colab-matricula" name="matricula" required maxlength="30" placeholder="Ex.: MAT-001">
+                <small class="form-ajuda">Identificador funcional único na empresa.</small>
+              </div>
+              <div class="form-grupo">
+                <label for="colab-setor">Setor <span class="obrigatorio">*</span></label>
+                <input id="colab-setor" name="setor" required maxlength="80" placeholder="Ex.: Obras / Estrutura">
+              </div>
+            </div>
+            <div class="form-botoes">
+              <button id="salvar-colaborador" class="btn btn-sucesso" type="submit">Salvar Colaborador</button>
+              <button id="voltar-colaborador" class="btn btn-secundario" type="button">Voltar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           2. EQUIPAMENTOS (EPIS)
+           ======================================================== -->
+      <div id="view-epis" hidden>
+        <div id="epis-lista" class="painel">
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h1>Equipamentos de Proteção (EPIs)</h1>
+              <p class="painel-subtitulo">Catálogo de itens e controle do estoque disponível.</p>
+            </div>
+            <button id="btn-criar-epi" class="btn btn-primario" type="button">
+              <span>+</span> Novo Equipamento
+            </button>
+          </div>
+
+          <div class="barra-filtros">
+            <div class="input-busca-box">
+              <svg class="icone-busca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="busca-epi" class="input-busca" type="search" placeholder="Pesquisar equipamento pelo nome...">
+            </div>
+          </div>
+
+          <div class="tabela-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Equipamento</th>
+                  <th scope="col">Descrição / C.A.</th>
+                  <th scope="col">Estoque Disponível</th>
+                  <th scope="col" style="width: 160px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-epis-corpo"></tbody>
+            </table>
+            <div id="vazio-epis" class="estado-vazio" hidden>
+              Nenhum equipamento cadastrado ou localizado.
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulário EPI -->
+        <div id="epis-form-card" class="painel form-card" hidden>
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h2 id="titulo-form-epi">Cadastrar Equipamento</h2>
+              <p class="painel-subtitulo">Informe os dados e quantidade do lote de segurança.</p>
+            </div>
+          </div>
+          <form id="form-epi">
+            <div class="form-grupo">
+              <label for="epi-nome">Nome do Equipamento <span class="obrigatorio">*</span></label>
+              <input id="epi-nome" name="nome" required maxlength="100" placeholder="Ex.: Capacete com Jugular Classe B">
+            </div>
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="epi-quantidade">Quantidade em Estoque <span class="obrigatorio">*</span></label>
+                <input id="epi-quantidade" name="quantidade" type="number" min="0" required placeholder="Ex.: 30">
+              </div>
+              <div class="form-grupo">
+                <label for="epi-descricao">Certificado de Aprovação (C.A.) / Detalhes</label>
+                <input id="epi-descricao" name="descricao" maxlength="255" placeholder="Ex.: C.A. 14238 - Tamanho G">
+              </div>
+            </div>
+            <div class="form-botoes">
+              <button id="salvar-epi" class="btn btn-sucesso" type="submit">Salvar Equipamento</button>
+              <button id="voltar-epi" class="btn btn-secundario" type="button">Voltar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           3. CONTROLE DE EMPRÉSTIMOS
+           ======================================================== -->
+      <div id="view-emprestimos" hidden>
+        <!-- Cards de Indicadores (KPIs) -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-disponivel">
+            <div class="kpi-icone-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 11 12 14 22 4"/></svg>
+            </div>
+            <div class="kpi-dados">
+              <span id="kpi-disponivel" class="kpi-valor">0</span>
+              <span class="kpi-rotulo">Itens Disponíveis</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-emprestado">
+            <div class="kpi-icone-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="kpi-dados">
+              <span id="kpi-emprestado" class="kpi-valor">0</span>
+              <span class="kpi-rotulo">Empréstimos Ativos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-vencido">
+            <div class="kpi-icone-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="kpi-dados">
+              <span id="kpi-vencido" class="kpi-valor">0</span>
+              <span class="kpi-rotulo">Prazos Vencidos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-equipe">
+            <div class="kpi-icone-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="kpi-dados">
+              <span id="kpi-colaboradores" class="kpi-valor">0</span>
+              <span class="kpi-rotulo">Total Colaboradores</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listagem de Empréstimos -->
+        <div id="emprestimos-lista" class="painel">
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h1>Histórico e Controle de Empréstimos</h1>
+              <p class="painel-subtitulo">Acompanhamento das retiradas, prazos e vistorias de devolução.</p>
+            </div>
+            <button id="btn-criar-emprestimo" class="btn btn-primario" type="button">
+              <span>+</span> Novo Empréstimo
+            </button>
+          </div>
+
+          <div class="barra-filtros">
+            <div class="input-busca-box">
+              <svg class="icone-busca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="busca-emprestimo" class="input-busca" type="search" placeholder="Buscar por colaborador ou equipamento...">
+            </div>
+          </div>
+
+          <div class="tabela-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Colaborador</th>
+                  <th scope="col">Equipamento</th>
+                  <th scope="col">Data Empréstimo</th>
+                  <th scope="col">Previsão Devolução</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Devolução Efetiva</th>
+                  <th scope="col" style="width: 110px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-emprestimos-corpo"></tbody>
+            </table>
+            <div id="vazio-emprestimos" class="estado-vazio" hidden>
+              Nenhum registro de empréstimo encontrado.
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulário Empréstimo -->
+        <div id="emprestimos-form-card" class="painel form-card" hidden>
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h2 id="titulo-form-emprestimo">Registrar Empréstimo</h2>
+              <p id="subtitulo-form-emprestimo" class="painel-subtitulo">Selecione o equipamento e o colaborador responsável.</p>
+            </div>
+          </div>
+          <form id="form-emprestimo">
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="emp-colaborador">Colaborador <span class="obrigatorio">*</span></label>
+                <select id="emp-colaborador" name="colaborador_id" required>
+                  <option value="">Selecione o colaborador…</option>
+                </select>
+              </div>
+              <div class="form-grupo">
+                <label for="emp-epi">Equipamento (EPI) <span class="obrigatorio">*</span></label>
+                <select id="emp-epi" name="epi_id" required>
+                  <option value="">Selecione o equipamento…</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="emp-data-emprestimo">Data do Empréstimo <span class="obrigatorio">*</span></label>
+                <input id="emp-data-emprestimo" name="data_emprestimo" type="date" required>
+              </div>
+              <div class="form-grupo">
+                <label for="emp-data-prevista">Previsão de Devolução <span class="obrigatorio">*</span></label>
+                <input id="emp-data-prevista" name="data_prevista_devolucao" type="date" required>
+                <small class="form-ajuda">O prazo deve ser posterior à data de entrega.</small>
+              </div>
+            </div>
+
+            <div class="form-grupo">
+              <label for="emp-status">Status do Item <span class="obrigatorio">*</span></label>
+              <select id="emp-status" name="status" required></select>
+            </div>
+
+            <div class="form-grupo">
+              <label for="emp-condicoes">Condições do Equipamento na Entrega</label>
+              <input id="emp-condicoes" name="condicoes_equipamento" placeholder="Ex.: Produto novo lacrado / Ótimo estado">
+            </div>
+
+            <!-- Campos exibidos dinamicamente apenas para Devolvido, Danificado ou Perdido -->
+            <div id="container-devolucao" hidden>
+              <div class="form-linha">
+                <div class="form-grupo">
+                  <label for="emp-data-devolucao">Data da Devolução Efetiva</label>
+                  <input id="emp-data-devolucao" name="data_devolucao" type="date">
+                </div>
+                <div class="form-grupo">
+                  <label for="emp-observacao">Observações na Devolução / Avaria</label>
+                  <input id="emp-observacao" name="observacao_devolucao" placeholder="Ex.: Devolvido higienizado / Trinca na lente">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-botoes">
+              <button id="salvar-emprestimo" class="btn btn-sucesso" type="submit">Salvar Empréstimo</button>
+              <button id="voltar-emprestimo" class="btn btn-secundario" type="button">Voltar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           4. RELATÓRIOS (FILTRO AND)
+           ======================================================== -->
+      <div id="view-relatorios" hidden>
+        <div class="painel">
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h1>Relatório Geral de Empréstimos</h1>
+              <p class="painel-subtitulo">Pesquisa combinatória tipo AND por colaborador, equipamento e status.</p>
+            </div>
+          </div>
+
+          <form id="form-relatorio-filtro" style="margin-bottom: 24px;">
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="rel-colaborador">Nome do Colaborador</label>
+                <input id="rel-colaborador" placeholder="Filtrar por nome do colaborador">
+              </div>
+              <div class="form-grupo">
+                <label for="rel-equipamento">Nome do Equipamento</label>
+                <input id="rel-equipamento" placeholder="Filtrar por nome do EPI">
+              </div>
+            </div>
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="rel-status">Status do Empréstimo</label>
+                <select id="rel-status">
+                  <option value="">Todos os status</option>
+                  <option value="Emprestado">Emprestado</option>
+                  <option value="Fornecido">Fornecido</option>
+                  <option value="Devolvido">Devolvido</option>
+                  <option value="Danificado">Danificado</option>
+                  <option value="Perdido">Perdido</option>
+                </select>
+              </div>
+              <div class="form-grupo" style="display: flex; align-items: flex-end;">
+                <button class="btn btn-primario" style="width: 100%;" type="submit">Filtrar Relatório</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="tabela-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Colaborador</th>
+                  <th scope="col">Equipamento</th>
+                  <th scope="col">Data Empréstimo</th>
+                  <th scope="col">Previsão</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Devolução</th>
+                  <th scope="col" style="width: 100px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-relatorios-corpo"></tbody>
+            </table>
+            <div id="vazio-relatorios" class="estado-vazio" hidden>
+              Nenhum registro localizado para os filtros informados.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           5. GESTÃO DE USUÁRIOS DO SISTEMA
+           ======================================================== -->
+      <div id="view-usuarios" hidden>
+        <div id="usuarios-lista" class="painel">
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h1>Gestão de Usuários</h1>
+              <p class="painel-subtitulo">Controle de acessos, administradores e operadores do sistema.</p>
+            </div>
+            <button id="btn-criar-usuario" class="btn btn-primario" type="button">
+              <span>+</span> Novo Usuário
+            </button>
+          </div>
+
+          <div class="tabela-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Nome Completo</th>
+                  <th scope="col">Usuário (Login)</th>
+                  <th scope="col">Perfil</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Criado em</th>
+                  <th scope="col" style="width: 160px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-usuarios-corpo"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Formulário Usuário -->
+        <div id="usuarios-form-card" class="painel form-card" hidden>
+          <div class="painel-topo">
+            <div class="painel-titulo-area">
+              <h2 id="titulo-form-usuario">Cadastrar Usuário</h2>
+              <p class="painel-subtitulo">Defina as credenciais e permissões de acesso ao sistema.</p>
+            </div>
+          </div>
+          <form id="form-usuario">
+            <div class="form-grupo">
+              <label for="user-nome">Nome Completo <span class="obrigatorio">*</span></label>
+              <input id="user-nome" required maxlength="100" placeholder="Ex.: Maria Souza">
+            </div>
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="user-login">Nome de Usuário (Login) <span class="obrigatorio">*</span></label>
+                <input id="user-login" required maxlength="50" placeholder="Ex.: maria.souza">
+                <small class="form-ajuda">Apenas letras, números, ponto ou traço.</small>
+              </div>
+              <div class="form-grupo">
+                <label for="user-perfil">Perfil de Acesso <span class="obrigatorio">*</span></label>
+                <select id="user-perfil" required>
+                  <option value="Administrador">Administrador</option>
+                  <option value="Operador">Operador</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-linha">
+              <div class="form-grupo">
+                <label for="user-senha" id="label-user-senha">Senha de Acesso <span class="obrigatorio">*</span></label>
+                <input id="user-senha" type="password" minlength="4" placeholder="Mínimo 4 caracteres">
+                <small id="ajuda-user-senha" class="form-ajuda" hidden>Deixe em branco para manter a senha atual.</small>
+              </div>
+              <div class="form-grupo" id="box-user-ativo" style="display: flex; align-items: center; gap: 10px; margin-top: 26px;">
+                <input id="user-ativo" type="checkbox" style="width: 18px; height: 18px;" checked>
+                <label for="user-ativo" style="margin: 0; cursor: pointer;">Usuário ativo no sistema</label>
+              </div>
+            </div>
+            <div class="form-botoes">
+              <button id="salvar-usuario" class="btn btn-sucesso" type="submit">Salvar Usuário</button>
+              <button id="voltar-usuario" class="btn btn-secundario" type="button">Voltar</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </main>
-    <footer>José Augusto da Silva Bertolino Falcão · Desenvolvimento de Sistemas</footer>
   </div>
-  <dialog id="confirmacao" aria-labelledby="titulo-exclusao" aria-describedby="texto-exclusao"><span class="aviso-icone" aria-hidden="true">!</span><h2 id="titulo-exclusao">Excluir colaborador?</h2><p id="texto-exclusao"></p><p class="ajuda">Confirme para remover o cadastro da lista.</p><div class="acoes-form"><button id="cancelar-exclusao" class="secundario" type="button" autofocus>Cancelar</button><button id="excluir" class="perigo" type="button">Excluir colaborador</button></div></dialog>
+
+  <!-- ========================================================
+       MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+       ======================================================== -->
+  <dialog id="modal-confirmacao">
+    <div class="modal-cabecalho">
+      <div class="modal-icone-perigo">!</div>
+      <h2 id="modal-titulo" class="modal-titulo">Confirmar Exclusão</h2>
+    </div>
+    <p id="modal-mensagem" class="modal-texto">Deseja realmente remover este registro?</p>
+    <div class="modal-acoes">
+      <button id="modal-btn-cancelar" class="btn btn-secundario" type="button">Cancelar</button>
+      <button id="modal-btn-confirmar" class="btn btn-perigo" type="button">Confirmar Exclusão</button>
+    </div>
+  </dialog>
+
+  <!-- ========================================================
+       TELA DE LOGIN REAL
+       ======================================================== -->
+  <div id="tela-login" class="login-overlay" hidden>
+    <div class="login-card">
+      <div class="login-topo">
+        <div class="login-logo">🛡</div>
+        <h1>Controle de EPI</h1>
+        <p>Acesso exclusivo para equipe de segurança do trabalho.</p>
+      </div>
+
+      <div id="login-alerta" class="alerta alerta-erro" hidden>
+        <span id="login-alerta-texto">Usuário ou senha incorretos.</span>
+      </div>
+
+      <form id="form-login-auth">
+        <div class="form-grupo">
+          <label for="login-usuario">Usuário <span class="obrigatorio">*</span></label>
+          <input id="login-usuario" type="text" required autocomplete="username" placeholder="Seu nome de usuário" value="admin">
+        </div>
+        <div class="form-grupo">
+          <label for="login-senha">Senha <span class="obrigatorio">*</span></label>
+          <input id="login-senha" type="password" required autocomplete="current-password" placeholder="Sua senha de acesso" value="admin123">
+        </div>
+        <button id="btn-submeter-login" class="btn btn-primario" style="width: 100%; margin-top: 10px;" type="submit">
+          Acessar Sistema
+        </button>
+      </form>
+
+      <div class="login-dica">
+        Credencial Padrão: <strong>admin</strong> | Senha: <strong>admin123</strong>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
