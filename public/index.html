@@ -49,8 +49,8 @@
     </div>
 
     <div class="nav-secao">
-      <div class="nav-rotulo">Administração</div>
-      <a class="nav-item" id="nav-usuarios" href="#usuarios">
+      <div class="nav-rotulo" id="rotulo-nav-admin" hidden>Administração</div>
+      <a class="nav-item" id="nav-usuarios" href="#usuarios" hidden>
         <svg class="nav-icone" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         <span>Gestão de Usuários</span>
       </a>
@@ -146,8 +146,8 @@
             <div class="form-linha">
               <div class="form-grupo">
                 <label for="colab-matricula">Matrícula <span class="obrigatorio">*</span></label>
-                <input id="colab-matricula" name="matricula" required maxlength="30" placeholder="Ex.: MAT-001">
-                <small class="form-ajuda">Identificador funcional único na empresa.</small>
+                <input id="colab-matricula" name="matricula" required maxlength="10" inputmode="numeric" pattern="\d{1,10}" title="Apenas números (até 10 dígitos)" placeholder="Ex.: 001">
+                <small class="form-ajuda">Apenas números (até 10 dígitos).</small>
               </div>
               <div class="form-grupo">
                 <label for="colab-setor">Setor <span class="obrigatorio">*</span></label>
@@ -350,7 +350,7 @@
                 <input id="emp-data-emprestimo" name="data_emprestimo" type="date" required>
               </div>
               <div class="form-grupo">
-                <label for="emp-data-prevista">Previsão de Devolução <span class="obrigatorio">*</span></label>
+                <label for="emp-data-prevista" id="label-data-prevista">Previsão de Devolução <span class="obrigatorio">*</span></label>
                 <input id="emp-data-prevista" name="data_prevista_devolucao" type="date" required>
                 <small class="form-ajuda">O prazo deve ser posterior à data de entrega.</small>
               </div>
@@ -439,7 +439,7 @@
                   <th scope="col">Previsão</th>
                   <th scope="col">Status</th>
                   <th scope="col">Devolução</th>
-                  <th scope="col" style="width: 100px; text-align: right;">Ações</th>
+
                 </tr>
               </thead>
               <tbody id="tabela-relatorios-corpo"></tbody>
@@ -564,19 +564,19 @@
       <form id="form-login-auth">
         <div class="form-grupo">
           <label for="login-usuario">Usuário <span class="obrigatorio">*</span></label>
-          <input id="login-usuario" type="text" required autocomplete="username" placeholder="Seu nome de usuário" value="admin">
+          <input id="login-usuario" type="text" required autocomplete="username" placeholder="Seu nome de usuário">
         </div>
         <div class="form-grupo">
           <label for="login-senha">Senha <span class="obrigatorio">*</span></label>
-          <input id="login-senha" type="password" required autocomplete="current-password" placeholder="Sua senha de acesso" value="admin123">
+          <input id="login-senha" type="password" required autocomplete="current-password" placeholder="Sua senha de acesso">
         </div>
         <button id="btn-submeter-login" class="btn btn-primario" style="width: 100%; margin-top: 10px;" type="submit">
           Acessar Sistema
         </button>
       </form>
 
-      <div class="login-dica">
-        Credencial Padrão: <strong>admin</strong> | Senha: <strong>admin123</strong>
+      <div class="login-dica" hidden>
+
       </div>
     </div>
   </div>

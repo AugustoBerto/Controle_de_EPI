@@ -38,6 +38,10 @@ async function requisicao(url, opcoes = {}) {
   }
   const dados = await resposta.json().catch(() => ({}));
   if (!resposta.ok) {
+    if (resposta.status === 401 && !url.startsWith("/api/auth/")) {
+      usuarioAtual = null;
+      exibirTelaLogin();
+    }
     throw new Error(dados.erro || "Não foi possível concluir a operação solicitada.");
   }
   return dados;
@@ -90,9 +94,24 @@ function definirUsuarioLogado(usuario) {
   $("topo-usuario-nome").textContent = usuario.nome;
   $("topo-usuario-perfil").textContent = usuario.perfil || "Operador";
   $("usuario-avatar").textContent = obterIniciais(usuario.nome);
+
+  const ehAdmin = usuario.perfil === "Administrador";
+  if ($("rotulo-nav-admin")) $("rotulo-nav-admin").hidden = !ehAdmin;
+  if ($("nav-usuarios")) $("nav-usuarios").hidden = !ehAdmin;
+  if (!ehAdmin) {
+    if ($("view-usuarios")) $("view-usuarios").hidden = true;
+    if (secaoAtual === "usuarios") {
+      alternarSecao("colaboradores");
+    }
+  }
 }
 
 function exibirTelaLogin() {
+  if ($("rotulo-nav-admin")) $("rotulo-nav-admin").hidden = true;
+  if ($("nav-usuarios")) $("nav-usuarios").hidden = true;
+  if ($("view-usuarios")) $("view-usuarios").hidden = true;
+  $("form-login-auth").reset();
+  $("login-alerta").hidden = true;
   $("tela-login").hidden = false;
 }
 
@@ -140,6 +159,10 @@ const secoes = {
 
 function alternarSecao(novaSecao) {
   if (!secoes[novaSecao]) return;
+  if (novaSecao === "usuarios" && (!usuarioAtual || usuarioAtual.perfil !== "Administrador")) {
+    exibirAlerta("Acesso restrito a administradores.", true);
+    return;
+  }
   fecharAlerta();
   secaoAtual = novaSecao;
 
@@ -298,6 +321,9 @@ function abrirFormColaborador(colab = null) {
 $("btn-criar-colaborador").addEventListener("click", () => abrirFormColaborador());
 $("voltar-colaborador").addEventListener("click", mostrarListaColaboradores);
 $("busca-colaborador").addEventListener("input", carregarColaboradores);
+$("colab-matricula").addEventListener("input", (e) => {
+  e.target.value = e.target.value.replace(/\D+/g, "").slice(0, 10);
+});
 
 $("form-colaborador").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -497,7 +523,11 @@ async function carregarEmprestimos() {
       tr.append(tdDataEmp);
 
       const tdDataPrev = document.createElement("td");
-      tdDataPrev.textContent = formatarData(item.data_prevista_devolucao);
+      if (item.status === "Fornecido") {
+        tdDataPrev.innerHTML = `<span style="color: var(--texto-mutado);">Sem devolução</span>`;
+      } else {
+        tdDataPrev.textContent = formatarData(item.data_prevista_devolucao);
+      }
       tr.append(tdDataPrev);
 
       const tdStatus = document.createElement("td");
@@ -508,7 +538,9 @@ async function carregarEmprestimos() {
       tr.append(tdStatus);
 
       const tdDev = document.createElement("td");
-      if (item.data_devolucao) {
+      if (item.status === "Fornecido") {
+        tdDev.innerHTML = `<span style="color: var(--texto-mutado);">Entrega definitiva</span>`;
+      } else if (item.data_devolucao) {
         tdDev.innerHTML = `<span>${formatarData(item.data_devolucao)}</span><br><small style="color:var(--texto-mutado);">${item.observacao_devolucao || ""}</small>`;
       } else {
         tdDev.innerHTML = `<span style="color: var(--texto-mutado);">Pendente</span>`;
@@ -518,12 +550,16 @@ async function carregarEmprestimos() {
       const tdAcao = document.createElement("td");
       tdAcao.style.textAlign = "right";
 
-      const btnEditar = document.createElement("button");
-      btnEditar.type = "button";
-      btnEditar.textContent = "Atualizar";
-      btnEditar.className = "btn-acao btn-acao-editar";
-      btnEditar.addEventListener("click", () => abrirFormEmprestimo(item));
-      tdAcao.append(btnEditar);
+      if (item.status !== "Fornecido") {
+        const btnEditar = document.createElement("button");
+        btnEditar.type = "button";
+        btnEditar.textContent = "Atualizar";
+        btnEditar.className = "btn-acao btn-acao-editar";
+        btnEditar.addEventListener("click", () => abrirFormEmprestimo(item));
+        tdAcao.append(btnEditar);
+      } else {
+        tdAcao.innerHTML = `<span style="color: var(--texto-mutado); font-size: 12px;">Concluído</span>`;
+      }
 
       tr.append(tdAcao);
       $("tabela-emprestimos-corpo").append(tr);
@@ -594,6 +630,25 @@ function configurarSelectStatus(statusAtual = "Emprestado", modoEdicao = false) 
 
 function atualizarCamposDevolucao() {
   const status = $("emp-status").value;
+  const ehFornecido = status === "Fornecido";
+  const grupoPrevista = $("emp-data-prevista").closest(".form-grupo");
+
+  if (ehFornecido) {
+    if (grupoPrevista) grupoPrevista.hidden = true;
+    $("emp-data-prevista").required = false;
+    $("emp-data-prevista").disabled = true;
+    $("emp-data-prevista").value = "";
+  } else {
+    if (grupoPrevista) grupoPrevista.hidden = false;
+    if (!editandoEmprestimoId) {
+      $("emp-data-prevista").required = true;
+      $("emp-data-prevista").disabled = false;
+      if (!$("emp-data-prevista").value) {
+        $("emp-data-prevista").value = obterDataFutura(7);
+      }
+    }
+  }
+
   const exibir = ["Devolvido", "Danificado", "Perdido"].includes(status);
   $("container-devolucao").hidden = !exibir;
   if (exibir && !$("emp-data-devolucao").value) {
@@ -630,6 +685,7 @@ async function abrirFormEmprestimo(emp = null) {
     $("emp-epi").disabled = true;
     $("emp-data-emprestimo").disabled = true;
     $("emp-data-prevista").disabled = true;
+    $("emp-data-prevista").removeAttribute("min");
 
     configurarSelectStatus(emp.status, true);
   } else {
@@ -642,6 +698,7 @@ async function abrirFormEmprestimo(emp = null) {
     $("emp-data-prevista").disabled = false;
 
     $("emp-data-emprestimo").value = obterDataHoje();
+    $("emp-data-prevista").min = obterDataFutura(1);
     $("emp-data-prevista").value = obterDataFutura(7);
     configurarSelectStatus("Emprestado", false);
   }
@@ -649,6 +706,20 @@ async function abrirFormEmprestimo(emp = null) {
   $("emprestimos-lista").hidden = true;
   $("emprestimos-form-card").hidden = false;
 }
+
+$("emp-data-emprestimo").addEventListener("change", () => {
+  if (editandoEmprestimoId) return;
+  const base = $("emp-data-emprestimo").value || obterDataHoje();
+  const hoje = obterDataHoje();
+  const ref = base > hoje ? base : hoje;
+  const d = new Date(ref + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  const minPrevista = d.toISOString().slice(0, 10);
+  $("emp-data-prevista").min = minPrevista;
+  if ($("emp-data-prevista").value && $("emp-data-prevista").value < minPrevista) {
+    $("emp-data-prevista").value = minPrevista;
+  }
+});
 
 $("btn-criar-emprestimo").addEventListener("click", () => abrirFormEmprestimo());
 $("voltar-emprestimo").addEventListener("click", mostrarListaEmprestimos);
@@ -678,12 +749,13 @@ $("form-emprestimo").addEventListener("submit", async (e) => {
       mostrarListaEmprestimos();
       atualizarMetricas();
     } else {
+      const statusEscolhido = $("emp-status").value;
       const dados = {
         colaborador_id: Number($("emp-colaborador").value),
         epi_id: Number($("emp-epi").value),
         data_emprestimo: $("emp-data-emprestimo").value,
-        data_prevista_devolucao: $("emp-data-prevista").value,
-        status: $("emp-status").value,
+        data_prevista_devolucao: statusEscolhido === "Fornecido" ? "" : $("emp-data-prevista").value,
+        status: statusEscolhido,
         condicoes_equipamento: $("emp-condicoes").value.trim(),
       };
       const res = await requisicao("/api/emprestimos", {
@@ -691,8 +763,10 @@ $("form-emprestimo").addEventListener("submit", async (e) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dados),
       });
+      await popularSelectsEmprestimo();
       $("form-emprestimo").reset();
       $("emp-data-emprestimo").value = obterDataHoje();
+      $("emp-data-prevista").min = obterDataFutura(1);
       $("emp-data-prevista").value = obterDataFutura(7);
       configurarSelectStatus("Emprestado", false);
       exibirAlerta(res.mensagem || "Empréstimo registrado com sucesso!");
@@ -742,7 +816,7 @@ async function buscarRelatorios() {
       tr.append(tdEmp);
 
       const tdPrev = document.createElement("td");
-      tdPrev.textContent = formatarData(item.data_prevista_devolucao);
+      tdPrev.textContent = item.status === "Fornecido" ? "Sem devolução" : formatarData(item.data_prevista_devolucao);
       tr.append(tdPrev);
 
       const tdStatus = document.createElement("td");
@@ -753,22 +827,13 @@ async function buscarRelatorios() {
       tr.append(tdStatus);
 
       const tdDev = document.createElement("td");
-      tdDev.textContent = item.data_devolucao ? formatarData(item.data_devolucao) : "Pendente";
+      if (item.status === "Fornecido") {
+        tdDev.textContent = "Entrega definitiva";
+      } else {
+        tdDev.textContent = item.data_devolucao ? formatarData(item.data_devolucao) : "Pendente";
+      }
       tr.append(tdDev);
 
-      const tdAcao = document.createElement("td");
-      tdAcao.style.textAlign = "right";
-      const btnEditar = document.createElement("button");
-      btnEditar.type = "button";
-      btnEditar.textContent = "Ver / Editar";
-      btnEditar.className = "btn-acao btn-acao-editar";
-      btnEditar.addEventListener("click", () => {
-        alternarSecao("emprestimos");
-        abrirFormEmprestimo(item);
-      });
-      tdAcao.append(btnEditar);
-
-      tr.append(tdAcao);
       $("tabela-relatorios-corpo").append(tr);
     }
   } catch (e) {
@@ -828,7 +893,7 @@ async function carregarUsuarios() {
       btnEditar.addEventListener("click", () => abrirFormUsuario(u));
       tdAcao.append(btnEditar);
 
-      if (u.id !== 1) {
+      if (u.id !== 1 && u.id !== usuarioAtual?.id) {
         const btnDeletar = document.createElement("button");
         btnDeletar.type = "button";
         btnDeletar.textContent = "Excluir";
@@ -878,12 +943,15 @@ function abrirFormUsuario(u = null) {
     $("user-senha").required = false;
     $("label-user-senha").innerHTML = 'Nova Senha de Acesso <small style="font-weight: 400; color: var(--texto-mutado);">(opcional)</small>';
     $("ajuda-user-senha").hidden = false;
-    $("box-user-ativo").hidden = u.id === 1; // Não permite desativar admin 1
+    const ehProprioOuRaiz = u.id === 1 || u.id === usuarioAtual?.id;
+    $("box-user-ativo").hidden = ehProprioOuRaiz;
+    $("user-perfil").disabled = ehProprioOuRaiz;
   } else {
     $("user-senha").required = true;
     $("label-user-senha").innerHTML = 'Senha de Acesso <span class="obrigatorio">*</span>';
     $("ajuda-user-senha").hidden = true;
     $("box-user-ativo").hidden = false;
+    $("user-perfil").disabled = false;
     $("user-ativo").checked = true;
   }
 
