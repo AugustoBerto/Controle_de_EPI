@@ -3,7 +3,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS colaboradores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL CHECK (length(trim(nome)) BETWEEN 1 AND 100),
-    matricula TEXT NOT NULL UNIQUE CHECK (length(trim(matricula)) BETWEEN 1 AND 30),
+    matricula TEXT NOT NULL UNIQUE CHECK (length(trim(matricula)) BETWEEN 1 AND 10 AND trim(matricula) NOT GLOB '*[^0-9]*'),
     setor TEXT NOT NULL CHECK (length(trim(setor)) BETWEEN 1 AND 80)
 );
 

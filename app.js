@@ -67,6 +67,12 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
   // Sessões em memória
   const sessoes = new Map();
 
+  function encerrarSessoesDoUsuario(userId) {
+    for (const [sid, s] of sessoes.entries()) {
+      if (s.usuario.id === userId) sessoes.delete(sid);
+    }
+  }
+
   const app = express();
   app.locals.db = db;
   app.locals.sessoes = sessoes;
@@ -86,23 +92,43 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
 
   app.use(express.json({ limit: '8kb' }));
 
-  // Middleware para identificar usuário logado via cookie
+  // Middleware para identificar e validar usuário logado via cookie
   app.use((req, res, next) => {
     const cookies = extrairCookies(req);
     const sessionId = cookies.session_id;
     if (sessionId && sessoes.has(sessionId)) {
       const sessao = sessoes.get(sessionId);
       if (sessao.expiraEm > Date.now()) {
-        req.usuarioLogado = sessao.usuario;
+        const usuarioDb = db.prepare('SELECT id, nome, usuario, email, perfil, ativo FROM usuarios WHERE id = ?').get(sessao.usuario.id);
+        if (usuarioDb && usuarioDb.ativo) {
+          const dadosAtualizados = {
+            id: usuarioDb.id,
+            nome: usuarioDb.nome,
+            usuario: usuarioDb.usuario || usuarioDb.email,
+            perfil: usuarioDb.perfil,
+          };
+          sessao.usuario = dadosAtualizados;
+          req.usuarioLogado = dadosAtualizados;
+        } else {
+          sessoes.delete(sessionId);
+          req.sessaoInvalida = true;
+        }
       } else {
         sessoes.delete(sessionId);
+        req.sessaoInvalida = true;
       }
+    } else if (sessionId) {
+      req.sessaoInvalida = true;
     }
     next();
   });
 
   app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
+    if (req.sessaoInvalida && !req.path.startsWith('/auth/')) {
+      res.setHeader('Set-Cookie', 'session_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly');
+      return res.status(401).json({ erro: 'Sua sessão foi encerrada. Faça login novamente.' });
+    }
     next();
   });
 
@@ -165,12 +191,10 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
     if (req.usuarioLogado) {
       return res.json({ autenticado: true, usuario: req.usuarioLogado });
     }
-    // Fallback para admin inicial caso ainda não haja sessão
-    const admin = db.prepare('SELECT id, nome, usuario, perfil FROM usuarios WHERE id = 1').get();
-    res.json({
-      autenticado: true,
-      usuario: admin || { id: 1, nome: 'Administrador Geral', usuario: 'admin', perfil: 'Administrador' },
-    });
+    if (req.sessaoInvalida) {
+      res.setHeader('Set-Cookie', 'session_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly');
+    }
+    return res.status(401).json({ autenticado: false, erro: 'Sessão não autenticada.' });
   });
 
   app.post('/api/auth/logout', (req, res) => {
@@ -182,8 +206,15 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
   });
 
   // ==========================================
-  // GESTÃO DE USUÁRIOS DO SISTEMA
+  // GESTÃO DE USUÁRIOS DO SISTEMA (APENAS ADMIN)
   // ==========================================
+  app.use('/api/usuarios', (req, res, next) => {
+    if (req.usuarioLogado && req.usuarioLogado.perfil !== 'Administrador') {
+      return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
+    }
+    next();
+  });
+
   app.get('/api/usuarios', (req, res) => {
     const usuarios = db.prepare(`
       SELECT id, nome, usuario, perfil, ativo, criado_em 
@@ -267,14 +298,28 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
       hash = hashSenha(dados.senha.trim());
     }
 
-    // Não permite desativar o admin id 1
+    // Protege contra autodesativação ou autorremoção de perfil admin
+    if (req.usuarioLogado && req.usuarioLogado.id === id) {
+      if (ativo === 0) {
+        return res.status(403).json({ erro: 'Você não pode desativar sua própria conta.' });
+      }
+      if (perfil !== 'Administrador') {
+        return res.status(403).json({ erro: 'Você não pode remover seu próprio perfil de administrador.' });
+      }
+    }
+
     const ativoFinal = id === 1 ? 1 : ativo;
+    const perfilFinal = id === 1 ? 'Administrador' : perfil;
 
     db.prepare(`
       UPDATE usuarios 
       SET nome = ?, usuario = ?, senha_protegida = ?, perfil = ?, ativo = ?
       WHERE id = ?
-    `).run(nome, usuario, hash, perfil, ativoFinal, id);
+    `).run(nome, usuario, hash, perfilFinal, ativoFinal, id);
+
+    if (ativoFinal === 0) {
+      encerrarSessoesDoUsuario(id);
+    }
 
     res.json({ mensagem: 'Usuário atualizado com sucesso!' });
   });
@@ -287,6 +332,10 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
       return res.status(403).json({ erro: 'O administrador principal (admin) não pode ser excluído.' });
     }
 
+    if (req.usuarioLogado && req.usuarioLogado.id === id) {
+      return res.status(403).json({ erro: 'Você não pode excluir sua própria conta.' });
+    }
+
     const usuario = db.prepare('SELECT id FROM usuarios WHERE id = ?').get(id);
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado.' });
 
@@ -296,6 +345,7 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
     }
 
     db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
+    encerrarSessoesDoUsuario(id);
     res.json({ mensagem: 'Usuário excluído com sucesso!' });
   });
 
@@ -346,7 +396,7 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
       return res.status(400).json({ erro: 'Preencha nome, matrícula e setor.' });
     }
     req.dados = {};
-    for (const [campo, rotulo, limite] of [['nome', 'Nome', 100], ['matricula', 'Matrícula', 30], ['setor', 'Setor', 80]]) {
+    for (const [campo, rotulo, limite] of [['nome', 'Nome', 100], ['matricula', 'Matrícula', 10], ['setor', 'Setor', 80]]) {
       const valor = dados[campo];
       if (typeof valor !== 'string' || !valor.trim()) {
         return res.status(400).json({ erro: 'Preencha nome, matrícula e setor.' });
@@ -355,6 +405,9 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
         return res.status(400).json({ erro: `${rotulo} deve ter até ${limite} caracteres.` });
       }
       req.dados[campo] = valor.trim();
+    }
+    if (!/^\d{1,10}$/.test(req.dados.matricula)) {
+      return res.status(400).json({ erro: 'A matrícula deve conter apenas números (até 10 dígitos).' });
     }
     const idAtual = req.params.id ? Number(req.params.id) : 0;
     const repetido = db.prepare('SELECT id FROM colaboradores WHERE matricula = ? AND id != ?')
@@ -595,19 +648,8 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
     const epi = db.prepare('SELECT id, quantidade_disponivel FROM epis WHERE id = ?').get(epiId);
     if (!epi) return res.status(404).json({ erro: 'Equipamento não encontrado.' });
 
-    const dataEmprestimo = typeof dados.data_emprestimo === 'string' ? dados.data_emprestimo.trim() : '';
-    const dataPrevista = typeof dados.data_prevista_devolucao === 'string' ? dados.data_prevista_devolucao.trim() : '';
-    const condicoes = typeof dados.condicoes_equipamento === 'string' ? dados.condicoes_equipamento.trim() : '';
-
-    if (!dataEmprestimo) {
-      return res.status(400).json({ erro: 'Informe a data do empréstimo.' });
-    }
-    if (!dataPrevista) {
-      return res.status(400).json({ erro: 'Informe a data prevista para devolução.' });
-    }
-
-    if (dataPrevista <= dataEmprestimo) {
-      return res.status(400).json({ erro: 'A data prevista para devolução deve ser posterior à data do empréstimo.' });
+    if (epi.quantidade_disponivel < 1) {
+      return res.status(400).json({ erro: 'Este equipamento não possui estoque disponível.' });
     }
 
     const statusPermitidosInicial = ['Emprestado', 'Fornecido'];
@@ -616,14 +658,42 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
       return res.status(400).json({ erro: 'No cadastro inicial de empréstimo, selecione Emprestado ou Fornecido.' });
     }
 
+    const dataEmprestimo = typeof dados.data_emprestimo === 'string' ? dados.data_emprestimo.trim() : '';
+    const dataPrevista = typeof dados.data_prevista_devolucao === 'string' ? dados.data_prevista_devolucao.trim() : '';
+    const condicoes = typeof dados.condicoes_equipamento === 'string' ? dados.condicoes_equipamento.trim() : '';
+
+    if (!dataEmprestimo) {
+      return res.status(400).json({ erro: 'Informe a data do empréstimo.' });
+    }
+
+    let dataPrevistaFinal = '';
+    if (status === 'Emprestado') {
+      if (!dataPrevista) {
+        return res.status(400).json({ erro: 'Informe a data prevista para devolução.' });
+      }
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (dataPrevista <= dataEmprestimo || dataPrevista <= hoje) {
+        return res.status(400).json({ erro: 'A data prevista para devolução deve ser posterior à data atual e à data do empréstimo.' });
+      }
+      dataPrevistaFinal = dataPrevista;
+    }
+
+    // Dá baixa no estoque disponível (temporária para Emprestado, definitiva para Fornecido)
+    db.prepare('UPDATE epis SET quantidade_disponivel = quantidade_disponivel - 1 WHERE id = ?').run(epiId);
+
     const usuarioId = req.usuarioLogado?.id || 1;
 
     const resultado = db.prepare(`
       INSERT INTO emprestimos (colaborador_id, epi_id, usuario_id, data_emprestimo, data_prevista_devolucao, status, condicoes_equipamento)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(colaboradorId, epiId, usuarioId, dataEmprestimo, dataPrevista, status, condicoes);
+    `).run(colaboradorId, epiId, usuarioId, dataEmprestimo, dataPrevistaFinal, status, condicoes);
 
-    res.status(201).json({ id: Number(resultado.lastInsertRowid), mensagem: 'Empréstimo registrado com sucesso!' });
+    res.status(201).json({
+      id: Number(resultado.lastInsertRowid),
+      mensagem: status === 'Fornecido'
+        ? 'Equipamento fornecido com baixa no estoque!'
+        : 'Empréstimo registrado com sucesso!',
+    });
   });
 
   app.put('/api/emprestimos/:id', (req, res) => {
@@ -635,6 +705,10 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
 
     const emprestimo = db.prepare('SELECT * FROM emprestimos WHERE id = ?').get(id);
     if (!emprestimo) return res.status(404).json({ erro: 'Empréstimo não encontrado.' });
+
+    if (emprestimo.status === 'Fornecido') {
+      return res.status(400).json({ erro: 'Equipamentos fornecidos definitivamente não possuem devolução.' });
+    }
 
     const dados = req.body;
     const statusValidos = ['Emprestado', 'Fornecido', 'Devolvido', 'Danificado', 'Perdido'];
@@ -661,11 +735,31 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
       observacaoDevolucao = '';
     }
 
+    let dataPrevistaAtualizada = emprestimo.data_prevista_devolucao;
+    if (novoStatus === 'Fornecido') {
+      dataPrevistaAtualizada = '';
+    }
+
+    // Controle de estoque na mudança de status:
+    // Devolvido repõe +1 no estoque; sair de Devolvido para outro status consome -1 do estoque
+    const estavaDevolvido = emprestimo.status === 'Devolvido';
+    const vaiSerDevolvido = novoStatus === 'Devolvido';
+
+    if (!estavaDevolvido && vaiSerDevolvido) {
+      db.prepare('UPDATE epis SET quantidade_disponivel = quantidade_disponivel + 1 WHERE id = ?').run(emprestimo.epi_id);
+    } else if (estavaDevolvido && !vaiSerDevolvido) {
+      const epi = db.prepare('SELECT id, quantidade_disponivel FROM epis WHERE id = ?').get(emprestimo.epi_id);
+      if (!epi || epi.quantidade_disponivel < 1) {
+        return res.status(400).json({ erro: 'Este equipamento não possui estoque disponível.' });
+      }
+      db.prepare('UPDATE epis SET quantidade_disponivel = quantidade_disponivel - 1 WHERE id = ?').run(emprestimo.epi_id);
+    }
+
     db.prepare(`
       UPDATE emprestimos
-      SET status = ?, data_devolucao = ?, observacao_devolucao = ?, condicoes_equipamento = ?
+      SET status = ?, data_prevista_devolucao = ?, data_devolucao = ?, observacao_devolucao = ?, condicoes_equipamento = ?
       WHERE id = ?
-    `).run(novoStatus, dataDevolucao, observacaoDevolucao, condicoes, id);
+    `).run(novoStatus, dataPrevistaAtualizada, dataDevolucao, observacaoDevolucao, condicoes, id);
 
     res.json({ mensagem: 'Status do empréstimo atualizado com sucesso!' });
   });
@@ -683,7 +777,7 @@ export function criarAplicacao(banco = join(raiz, 'dados', 'controle_epi.db')) {
   // ==========================================
   // ARQUIVOS ESTÁTICOS E TRATAMENTO DE ERROS
   // ==========================================
-  app.use(express.static(join(raiz, 'public')));
+  app.use(express.static(join(raiz, 'public'), { etag: false, lastModified: false, setHeaders: (res) => res.setHeader('Cache-Control', 'no-store') }));
   app.use((req, res) => res.status(404).json({ erro: 'Página não encontrada.' }));
   app.use((erro, req, res, next) => {
     if (erro.type === 'entity.parse.failed') {

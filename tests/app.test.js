@@ -74,7 +74,9 @@ test('recusar campos vazios, valores inválidos e matrícula repetida', async ()
   const id = await cadastrar();
   for (const dados of [[], {}, { nome: ' ', matricula: '002', setor: 'Produção' },
     { nome: 'A'.repeat(101), matricula: '002', setor: 'Produção' },
-    { nome: 'Ana', matricula: 2, setor: 'Produção' }]) {
+    { nome: 'Ana', matricula: 2, setor: 'Produção' },
+    { nome: 'Ana', matricula: 'MAT-001', setor: 'Produção' },
+    { nome: 'Ana', matricula: '12345678901', setor: 'Produção' }]) {
     assert.equal((await pedir('POST', '/api/colaboradores', dados)).status, 400);
   }
   const repetido = { nome: 'Outra pessoa', matricula: '001', setor: 'Estoque' };
@@ -82,7 +84,7 @@ test('recusar campos vazios, valores inválidos e matrícula repetida', async ()
   const outro = await cadastrar('Ana', '002');
   assert.equal((await pedir('PUT', `/api/colaboradores/${outro}`, repetido)).status, 409);
   assert.equal((await pedir('GET', `/api/colaboradores/${outro}`)).dados.matricula, '002');
-  assert.equal((await pedir('PUT', `/api/colaboradores/${id}`, { nome: 'José', matricula: '001', setor: 'Estoque' })).status, 200);
+  assert.equal((await pedir('PUT', `/api/colaboradores/${id}`, { nome: 'José', matricula: '1234567890', setor: 'Estoque' })).status, 200);
 });
 
 test('buscar texto literal sem executar instruções SQL', async () => {
@@ -189,6 +191,16 @@ test('controle de empréstimo: cadastrar, validar datas e atualizar status', asy
   });
   assert.equal(resDataInvalida.status, 400);
 
+  // Tentar cadastrar com data prevista no passado (anterior ou igual à data atual)
+  const resDataPassada = await pedir('POST', '/api/emprestimos', {
+    colaborador_id: colabId,
+    epi_id: epiId,
+    data_emprestimo: '2020-01-01',
+    data_prevista_devolucao: '2020-01-10',
+    status: 'Emprestado'
+  });
+  assert.equal(resDataPassada.status, 400);
+
   // Tentar cadastrar com status proibido na criação (ex: Devolvido)
   const resStatusProibido = await pedir('POST', '/api/emprestimos', {
     colaborador_id: colabId,
@@ -242,9 +254,47 @@ test('controle de empréstimo: cadastrar, validar datas e atualizar status', asy
   assert.equal(resEmpAtualizado.dados.epi_id, epiId);
   assert.equal(resEmpAtualizado.dados.data_emprestimo, '2026-10-25');
   assert.equal(resEmpAtualizado.dados.data_prevista_devolucao, '2026-10-30');
+
+  // Cadastrar item Fornecido: dá baixa no estoque e não tem devolução
+  const resFornecido = await pedir('POST', '/api/emprestimos', {
+    colaborador_id: colabId,
+    epi_id: epiId,
+    data_emprestimo: '2026-10-25',
+    status: 'Fornecido',
+    condicoes_equipamento: 'Entrega definitiva'
+  });
+  assert.equal(resFornecido.status, 201);
+  const fornecidoId = resFornecido.dados.id;
+
+  // Estoque inicial do EPI era 5:
+  // - 1 Emprestado (depois atualizado para Danificado) -> -1 (estoque = 4)
+  // - 1 Fornecido -> -1 (estoque = 3)
+  let resEpiDepois = await pedir('GET', `/api/epis/${epiId}`);
+  assert.equal(resEpiDepois.dados.quantidade_disponivel, 3);
+
+  // Quando o empréstimo é atualizado para Devolvido, o estoque aumenta (+1 -> estoque = 4)
+  const resDevolucao = await pedir('PUT', `/api/emprestimos/${empId}`, {
+    status: 'Devolvido',
+    data_devolucao: '2026-10-29',
+    observacao_devolucao: 'Devolvido após reparo'
+  });
+  assert.equal(resDevolucao.status, 200);
+  resEpiDepois = await pedir('GET', `/api/epis/${epiId}`);
+  assert.equal(resEpiDepois.dados.quantidade_disponivel, 4);
+
+  // Item Fornecido não possui previsão de devolução e não permite atualização de devolução
+  const resEmpFornecido = await pedir('GET', `/api/emprestimos/${fornecidoId}`);
+  assert.equal(resEmpFornecido.dados.data_prevista_devolucao, '');
+  const resUpdateFornecido = await pedir('PUT', `/api/emprestimos/${fornecidoId}`, {
+    status: 'Devolvido'
+  });
+  assert.equal(resUpdateFornecido.status, 400);
 });
 
 test('autenticação real: login com usuário e senha, me e logout', async () => {
+  // Sem sessão, /api/auth/me retorna 401
+  assert.equal((await pedir('GET', '/api/auth/me')).status, 401);
+
   // Login incorreto
   const resIncorreto = await pedir('POST', '/api/auth/login', {
     usuario: 'admin',
@@ -273,9 +323,10 @@ test('autenticação real: login com usuário e senha, me e logout', async () =>
   // Logout
   const resLogout = await pedir('POST', '/api/auth/logout', {}, { Cookie: cookie });
   assert.equal(resLogout.status, 200);
+  assert.equal((await pedir('GET', '/api/auth/me', undefined, { Cookie: cookie })).status, 401);
 });
 
-test('gestão de usuários: criar, listar, atualizar e proteger exclusão do admin', async () => {
+test('gestão de usuários: criar, listar, atualizar, restringir operador e proteger exclusão', async () => {
   // Listar usuários (já contém o admin id 1)
   let resLista = await pedir('GET', '/api/usuarios');
   assert.equal(resLista.status, 200);
@@ -300,21 +351,28 @@ test('gestão de usuários: criar, listar, atualizar e proteger exclusão do adm
   });
   assert.equal(resUpdate.status, 200);
 
-  // Testar login com o novo usuário
+  // Testar login com o novo usuário Operador
   const resLoginNovo = await pedir('POST', '/api/auth/login', {
     usuario: 'carlos.sst',
     senha: 'senha456'
   });
   assert.equal(resLoginNovo.status, 200);
   assert.equal(resLoginNovo.dados.usuario.nome, 'Carlos Eduardo SST');
+  const cookieOperador = resLoginNovo.headers.get('set-cookie');
+
+  // Operador não deve ter acesso à gestão de usuários (GET, POST, PUT, DELETE)
+  assert.equal((await pedir('GET', '/api/usuarios', undefined, { Cookie: cookieOperador })).status, 403);
+  assert.equal((await pedir('DELETE', `/api/usuarios/${novoId}`, undefined, { Cookie: cookieOperador })).status, 403);
 
   // Impedir exclusão do admin id 1
   const resDelAdmin = await pedir('DELETE', '/api/usuarios/1');
   assert.equal(resDelAdmin.status, 403);
 
-  // Excluir usuário criado
+  // Excluir usuário criado (como admin) e verificar que a sessão do operador foi desconectada
   const resDel = await pedir('DELETE', `/api/usuarios/${novoId}`);
   assert.equal(resDel.status, 200);
+  assert.equal((await pedir('GET', '/api/auth/me', undefined, { Cookie: cookieOperador })).status, 401);
+  assert.equal((await pedir('GET', '/api/colaboradores', undefined, { Cookie: cookieOperador })).status, 401);
 });
 
 test('métricas e relatório de empréstimos com filtro AND', async () => {
