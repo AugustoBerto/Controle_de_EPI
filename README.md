@@ -17,15 +17,14 @@ Sistema corporativo para controle de Equipamentos de Proteção Individual (EPI)
 
 ## Acesso e Autenticação (Real)
 
-O sistema conta com autenticação real baseada em **Nome de Usuário** e **Senha** (sem exigência de e-mail), com controle de sessão seguro (`HttpOnly` cookie) e hash criptográfico SHA-256 com salt.
+O sistema conta com autenticação real baseada em **Nome de Usuário** e **Senha**, com controle de sessão seguro (`HttpOnly` cookie) e hash criptográfico SHA-256 com salt.
 
-O administrador geral padrão é gerado automaticamente na inicialização:
+O administrador padrão é gerado automaticamente na inicialização com uma conta genérica:
 
 | Campo | Credencial |
 | :--- | :--- |
 | **Usuário** | `admin` |
 | **Senha** | `admin123` |
-| **Perfil** | Administrador Geral |
 
 Novos usuários com perfil de **Administrador** ou **Operador** podem ser criados, editados e gerenciados no módulo de **Gestão de Usuários**.
 
