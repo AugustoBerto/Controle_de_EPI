@@ -30,6 +30,108 @@ Novos usuários com perfil de **Administrador** ou **Operador** podem ser criado
 
 ---
 
+## Planejamento do Sistema
+
+### 1. Requisitos Funcionais (RF)
+- **RF01:** Permitir login e logout no sistema com usuário e senha.
+- **RF02:** Cadastrar, listar, pesquisar por nome, editar e excluir colaboradores.
+- **RF03:** Cadastrar, listar, pesquisar por nome, editar e excluir equipamentos (EPIs) com controle da quantidade disponível em estoque.
+- **RF04:** Registrar empréstimos e fornecimentos de EPIs vinculando colaborador e equipamento, dando baixa automática no estoque.
+- **RF05:** Atualizar o status do empréstimo (`Emprestado`, `Fornecido`, `Devolvido`, `Danificado`, `Perdido`), registrando data e observação de devolução e repondo o estoque quando devolvido.
+- **RF06:** Consultar relatórios de empréstimos aplicando filtros simultâneos (tipo `AND`) por colaborador, equipamento e status.
+- **RF07:** Gerenciar usuários do sistema (criar, editar, ativar/desativar e excluir), restrito ao perfil Administrador.
+
+### 2. Requisitos Não Funcionais (RNF)
+- **RNF01 (Usabilidade):** Interface simples e intuitiva com menu lateral fixo, alertas de sucesso/erro em todas as operações e janela de confirmação antes de excluir registros.
+- **RNF02 (Persistência):** Armazenamento permanente dos dados em banco de dados relacional SQLite (`dados/controle_epi.db`).
+- **RNF03 (Segurança e Controle de Acesso):** Senhas protegidas com hash e acesso restrito a usuários autenticados, separando permissões de Operador e Administrador.
+- **RNF04 (Integridade dos Dados):** Bloqueio de exclusão de colaboradores, EPIs ou usuários que possuam histórico de empréstimos, além da validação de datas de devolução.
+- **RNF05 (Portabilidade):** Execução padronizada via Node.js ou container Docker.
+
+### 3. Diagrama de Casos de Uso
+
+```mermaid
+flowchart LR
+    Op["👤 Operador"]
+    Adm["🔑 Administrador"]
+
+    subgraph Sistema["Sistema de Controle de EPI"]
+        UC1["Fazer Login / Logout"]
+        UC2["Gerenciar Colaboradores"]
+        UC3["Gerenciar Equipamentos (EPIs)"]
+        UC4["Registrar e Atualizar Empréstimos"]
+        UC5["Consultar Relatórios (Filtro AND)"]
+        UC6["Gerenciar Usuários do Sistema"]
+    end
+
+    Op --> UC1
+    Op --> UC2
+    Op --> UC3
+    Op --> UC4
+    Op --> UC5
+
+    Adm --> Op
+    Adm --> UC6
+```
+
+### 4. Modelagem do Banco de Dados (DER)
+
+O banco de dados possui 4 tabelas principais relacionadas por chaves estrangeiras (`colaborador_id`, `epi_id` e `usuario_id`):
+
+```mermaid
+erDiagram
+    COLABORADORES ||--o{ EMPRESTIMOS : "recebe"
+    EPIS ||--o{ EMPRESTIMOS : "é entregue em"
+    USUARIOS ||--o{ EMPRESTIMOS : "registra"
+
+    COLABORADORES {
+        int id PK
+        text nome
+        text matricula UK
+        text setor
+    }
+
+    EPIS {
+        int id PK
+        text nome
+        text descricao
+        int quantidade_disponivel
+    }
+
+    USUARIOS {
+        int id PK
+        text nome
+        text usuario UK
+        text email UK
+        text senha_protegida
+        text perfil
+        int ativo
+        text criado_em
+    }
+
+    EMPRESTIMOS {
+        int id PK
+        int colaborador_id FK
+        int epi_id FK
+        int usuario_id FK
+        int quantidade
+        text data_emprestimo
+        text data_prevista_devolucao
+        text data_devolucao
+        text status
+        text condicoes_equipamento
+        text observacao_devolucao
+    }
+```
+
+### 5. Protótipo de Telas (Wireframe)
+
+O planejamento visual das telas (Tela Base, Colaboradores, Equipamentos, Empréstimos e Relatórios) está disponível no arquivo `wireframe.png`:
+
+![Wireframe do Sistema](./wireframe.png)
+
+---
+
 ## Módulos e Funcionalidades
 
 ### 1. Gestão de Usuários (Administração)
@@ -39,7 +141,7 @@ Novos usuários com perfil de **Administrador** ou **Operador** podem ser criado
 - Proteção de integridade: usuários vinculados a histórico de empréstimos não podem ser excluídos.
 
 ### 2. Cadastro de Colaboradores
-- Cadastro com validação de campos obrigatórios: Nome completo, Matrícula única e Setor.
+- Cadastro com validação de campos obrigatórios: Nome completo, Matrícula única (numérica) e Setor.
 - Busca em tempo real por nome com normalização de acentuação em pt-BR.
 - Edição e exclusão com diálogo modal de confirmação.
 
@@ -62,13 +164,13 @@ Novos usuários com perfil de **Administrador** ou **Operador** podem ser criado
 
 ### 5. Relatórios com Filtro Combinatório (AND)
 - Filtro simultâneo por Colaborador + Equipamento + Status.
-- Tabela com atalhos de inspeção e atualização de registros.
+- Listagem detalhada para consulta rápida do histórico e situação de cada entrega.
 
 ---
 
 ## Como Executar
 
-Requer **Node.js 24 ou superior** (utiliza o módulo nativo `node:sqlite`).
+Requer **Node.js 22.5 ou superior** (recomendado Node.js 24, utiliza o módulo nativo `node:sqlite`).
 
 ```bash
 npm install
